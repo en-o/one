@@ -15,16 +15,16 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  
+
   // 编辑模态框状态
   const [editingYear, setEditingYear] = useState<YearData | null>(null);
-  
+
   // 拖拽状态 - 使用 ref 避免闭包问题
   const isDraggingRef = useRef(false);
-  const dragStartXRef = useRef(0);
-  const scrollStartXRef = useRef(0);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
   const dragDistanceRef = useRef(0);
-  
+
   const checkScroll = useCallback(() => {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
@@ -32,7 +32,7 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
       setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
     }
   }, []);
-  
+
   useEffect(() => {
     checkScroll();
     const scrollEl = scrollRef.current;
@@ -41,12 +41,12 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
       return () => scrollEl.removeEventListener('scroll', checkScroll);
     }
   }, [checkScroll, years]);
-  
+
   // 键盘导航
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!scrollRef.current) return;
-      
+
       const scrollAmount = 300;
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -56,127 +56,129 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
         scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
+  // ========== 统一的拖拽/滚动事件处理 ==========
+  useEffect(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+
+    // 鼠标按下
+    const handleMouseDown = (e: MouseEvent) => {
+      // 只响应左键
+      if (e.button !== 0) return;
+      // 如果点击的是按钮，不启动拖拽
+      const target = e.target as HTMLElement;
+      if (target.closest('button')) return;
+
+      e.preventDefault();
+      isDraggingRef.current = true;
+      startXRef.current = e.clientX;
+      scrollLeftRef.current = scrollEl.scrollLeft;
+      dragDistanceRef.current = 0;
+      scrollEl.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+    };
+
+    // 鼠标移动 - 绑定到 document 确保拖出容器也能工作
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      e.preventDefault();
+      const x = e.clientX;
+      const walk = startXRef.current - x;
+      dragDistanceRef.current = Math.abs(walk);
+      scrollEl.scrollLeft = scrollLeftRef.current + walk;
+    };
+
+    // 鼠标松开
+    const handleMouseUp = () => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      scrollEl.style.cursor = 'grab';
+      document.body.style.userSelect = '';
+      // 延迟重置拖拽距离
+      setTimeout(() => {
+        dragDistanceRef.current = 0;
+      }, 100);
+    };
+
+    // 触摸开始
+    const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button')) return;
+
+      const touch = e.touches[0];
+      isDraggingRef.current = true;
+      startXRef.current = touch.clientX;
+      scrollLeftRef.current = scrollEl.scrollLeft;
+      dragDistanceRef.current = 0;
+    };
+
+    // 触摸移动
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDraggingRef.current) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const x = touch.clientX;
+      const walk = startXRef.current - x;
+      dragDistanceRef.current = Math.abs(walk);
+      scrollEl.scrollLeft = scrollLeftRef.current + walk;
+    };
+
+    // 触摸结束
+    const handleTouchEnd = () => {
+      isDraggingRef.current = false;
+      setTimeout(() => {
+        dragDistanceRef.current = 0;
+      }, 100);
+    };
+
+    // 鼠标滚轮（垂直滚动转水平滚动）
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
+      scrollEl.scrollLeft += delta;
+    };
+
+    // 添加事件监听 - 容器上的事件
+    scrollEl.addEventListener('mousedown', handleMouseDown);
+    scrollEl.addEventListener('touchstart', handleTouchStart, { passive: false });
+    scrollEl.addEventListener('touchmove', handleTouchMove, { passive: false });
+    scrollEl.addEventListener('touchend', handleTouchEnd);
+    scrollEl.addEventListener('wheel', handleWheel, { passive: false });
+
+    // 全局鼠标事件 - 确保拖出容器也能工作
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      scrollEl.removeEventListener('mousedown', handleMouseDown);
+      scrollEl.removeEventListener('touchstart', handleTouchStart);
+      scrollEl.removeEventListener('touchmove', handleTouchMove);
+      scrollEl.removeEventListener('touchend', handleTouchEnd);
+      scrollEl.removeEventListener('wheel', handleWheel);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
       const scrollAmount = direction === 'left' ? -400 : 400;
       scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
-  
+
   const getYearText = (data: YearData) => {
     if (data.isFuture) {
       return data.text || '未来待描绘...';
     }
     return data.text || `${data.year}`;
   };
-  
-  // ========== 鼠标拖拽处理 ==========
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // 只响应左键
-    if (e.button !== 0) return;
-    
-    // 如果点击的是可交互元素，不启动拖拽
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('input') || target.closest('textarea')) {
-      return;
-    }
-    
-    if (!scrollRef.current) return;
-    
-    isDraggingRef.current = true;
-    dragStartXRef.current = e.clientX;
-    scrollStartXRef.current = scrollRef.current.scrollLeft;
-    dragDistanceRef.current = 0;
-    
-    // 改变光标样式
-    if (scrollRef.current) {
-      scrollRef.current.style.cursor = 'grabbing';
-      scrollRef.current.style.userSelect = 'none';
-    }
-  }, []);
-  
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDraggingRef.current || !scrollRef.current) return;
-    
-    const deltaX = dragStartXRef.current - e.clientX;
-    dragDistanceRef.current = Math.abs(deltaX);
-    
-    scrollRef.current.scrollLeft = scrollStartXRef.current + deltaX;
-  }, []);
-  
-  const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
-    
-    if (scrollRef.current) {
-      scrollRef.current.style.cursor = 'grab';
-      scrollRef.current.style.userSelect = '';
-    }
-    
-    // 延迟重置拖拽距离，用于区分点击和拖拽
-    setTimeout(() => {
-      dragDistanceRef.current = 0;
-    }, 50);
-  }, []);
-  
-  // 全局鼠标事件
-  useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (!isDraggingRef.current || !scrollRef.current) return;
-      
-      const deltaX = dragStartXRef.current - e.clientX;
-      scrollRef.current.scrollLeft = scrollStartXRef.current + deltaX;
-    };
-    
-    const handleGlobalMouseUp = () => {
-      isDraggingRef.current = false;
-      if (scrollRef.current) {
-        scrollRef.current.style.cursor = 'grab';
-        scrollRef.current.style.userSelect = '';
-      }
-    };
-    
-    document.addEventListener('mousemove', handleGlobalMouseMove);
-    document.addEventListener('mouseup', handleGlobalMouseUp);
-    
-    return () => {
-      document.removeEventListener('mousemove', handleGlobalMouseMove);
-      document.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-  }, []);
-  
-  // ========== 触摸滑动处理 ==========
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!scrollRef.current) return;
-    
-    const touch = e.touches[0];
-    dragStartXRef.current = touch.clientX;
-    scrollStartXRef.current = scrollRef.current.scrollLeft;
-    dragDistanceRef.current = 0;
-    isDraggingRef.current = true;
-  }, []);
-  
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDraggingRef.current || !scrollRef.current) return;
-    
-    const touch = e.touches[0];
-    const deltaX = dragStartXRef.current - touch.clientX;
-    dragDistanceRef.current = Math.abs(deltaX);
-    
-    scrollRef.current.scrollLeft = scrollStartXRef.current + deltaX;
-  }, []);
-  
-  const handleTouchEnd = useCallback(() => {
-    isDraggingRef.current = false;
-    setTimeout(() => {
-      dragDistanceRef.current = 0;
-    }, 50);
-  }, []);
-  
+
   // 处理年份卡片点击（编辑）
   const handleYearClick = (yearData: YearData) => {
     // 如果拖拽距离超过 5px，认为是拖拽而非点击
@@ -261,7 +263,7 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
       </button>
       
       {/* 长卷容器 */}
-      <div 
+      <div
         ref={scrollRef}
         className="scroll-container flex-1 flex items-center px-4 md:px-20 py-12 md:py-16 overflow-x-auto overflow-y-hidden"
         style={{
@@ -272,15 +274,8 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
           `,
           WebkitOverflowScrolling: 'touch',
         }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
-        <div className="flex h-[400px] md:h-[500px] scroll-shadow rounded-lg overflow-hidden">
+        <div className="flex h-[400px] md:h-[500px] scroll-shadow rounded-lg flex-shrink-0">
           {years.map((yearData, index) => (
             <div
               key={yearData.year}
