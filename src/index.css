@@ -1,0 +1,206 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 96%;
+    --foreground: 30 15% 12%;
+    --card: 40 20% 98%;
+    --card-foreground: 30 15% 12%;
+    --popover: 40 20% 98%;
+    --popover-foreground: 30 15% 12%;
+    --primary: 30 15% 12%;
+    --primary-foreground: 40 20% 96%;
+    --secondary: 40 15% 92%;
+    --secondary-foreground: 30 15% 12%;
+    --muted: 40 10% 88%;
+    --muted-foreground: 30 8% 45%;
+    --accent: 35 30% 85%;
+    --accent-foreground: 30 15% 12%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 40 10% 82%;
+    --input: 40 10% 82%;
+    --ring: 30 15% 12%;
+    --radius: 0.5rem;
+    
+    /* 中国古典色彩 */
+    --paper: #f7f5f0;
+    --ink: #2c241b;
+    --light-ink: #5a4d3d;
+    --mountain: #8b8680;
+    --water: #a8c4d9;
+    --cloud: #d4d0c8;
+    --accent-red: #c45c48;
+    --accent-gold: #c9a961;
+    --shadow: rgba(44, 36, 27, 0.12);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-[var(--paper)] text-[var(--ink)] antialiased;
+    font-family: 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif;
+  }
+}
+
+@layer components {
+  /* 宣纸纹理背景 */
+  .paper-texture {
+    background-color: var(--paper);
+    background-image: 
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+  
+  /* 卷轴阴影效果 */
+  .scroll-shadow {
+    box-shadow: 
+      0 4px 20px var(--shadow),
+      0 8px 40px rgba(44, 36, 27, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+  
+  /* 中式边框 */
+  .chinese-border {
+    border: 1px solid var(--light-ink);
+    position: relative;
+  }
+  
+  .chinese-border::before,
+  .chinese-border::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border: 1px solid var(--light-ink);
+  }
+  
+  .chinese-border::before {
+    top: -1px;
+    left: -1px;
+    border-right: none;
+    border-bottom: none;
+  }
+  
+  .chinese-border::after {
+    bottom: -1px;
+    right: -1px;
+    border-left: none;
+    border-top: none;
+  }
+  
+  /* 竖排文字 */
+  .vertical-text {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+  
+  /* 毛笔字效果 */
+  .brush-text {
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-shadow: 1px 1px 2px rgba(44, 36, 27, 0.1);
+  }
+  
+  /* 年份卡片 */
+  .year-card {
+    @apply relative flex flex-col items-center justify-center;
+    background: linear-gradient(180deg, var(--paper) 0%, #f0ede6 100%);
+    border-left: 1px solid rgba(90, 77, 61, 0.2);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .year-card:hover {
+    background: linear-gradient(180deg, #faf8f3 0%, #f5f2ea 100%);
+  }
+  
+  .year-card.ai-generated {
+    background: linear-gradient(180deg, #faf8f3 0%, #f0f0f0 100%);
+  }
+  
+  .year-card.ai-generated::after {
+    content: 'AI';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+  
+  /* 模态框动画 */
+  .modal-enter {
+    animation: modalFadeIn 0.4s ease-out forwards;
+  }
+  
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+  
+  /* 长卷滚动 */
+  .scroll-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--light-ink) transparent;
+  }
+  
+  .scroll-container::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scroll-container::-webkit-scrollbar-thumb {
+    background: rgba(90, 77, 61, 0.3);
+    border-radius: 4px;
+  }
+  
+  .scroll-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(90, 77, 61, 0.5);
+  }
+  
+  /* 印章效果 */
+  .seal {
+    @apply inline-flex items-center justify-center;
+    width: 48px;
+    height: 48px;
+    background: var(--accent-red);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 4px;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.1);
+    transform: rotate(-3deg);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
