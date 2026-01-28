@@ -198,57 +198,108 @@
     transform: rotate(-3deg);
   }
 
-  /* 画轴效果 */
-  .scroll-rod {
-    position: relative;
-    width: 28px;
-    height: 100%;
-    flex-shrink: 0;
-    z-index: 15;
-    transition: transform 0.1s ease-out;
-    transform-origin: center center;
-    perspective: 1000px;
+  /* ========== 固定画轴效果 ========== */
+  .scroll-rod-fixed {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 70vh;
+    max-height: 540px;
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
-  .scroll-rod-body {
+  .scroll-rod-fixed-left {
+    left: 0;
+  }
+
+  .scroll-rod-fixed-right {
+    right: 0;
+  }
+
+  /* 卷入的纸张厚度效果 */
+  .scroll-rod-paper-roll {
     position: absolute;
-    top: 20px;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    background: linear-gradient(90deg,
-      #8b6914 0%,
-      #d4a84b 15%,
-      #f5d78e 30%,
-      #d4a84b 50%,
-      #a67c00 70%,
-      #8b6914 85%,
-      #6b5210 100%
-    );
-    border-radius: 10px;
+    top: 36px;
+    bottom: 36px;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        #f7f5f0 0px,
+        #e8e4db 1px,
+        #f0ede6 2px
+      );
+    border-radius: 4px;
     box-shadow:
-      2px 0 4px rgba(0,0,0,0.3),
-      -1px 0 2px rgba(255,255,255,0.2) inset,
-      0 0 10px rgba(139,105,20,0.3);
-    transition: box-shadow 0.1s ease-out;
+      inset 2px 0 4px rgba(0,0,0,0.1),
+      inset -2px 0 4px rgba(0,0,0,0.1);
+    transition: width 0.15s ease-out;
   }
 
-  /* 画轴旋转时的阴影变化 */
-  .scroll-rod:hover .scroll-rod-body {
-    box-shadow:
-      3px 0 6px rgba(0,0,0,0.4),
-      -1px 0 2px rgba(255,255,255,0.2) inset,
-      0 0 15px rgba(139,105,20,0.4);
+  .scroll-rod-fixed-left .scroll-rod-paper-roll {
+    right: 22px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
   }
 
-  /* 画轴顶部装饰 - 玉石头 */
-  .scroll-rod-cap {
+  .scroll-rod-fixed-right .scroll-rod-paper-roll {
+    left: 22px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  /* 画轴主体 - 固定版 */
+  .scroll-rod-body-fixed {
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 32px;
-    height: 32px;
+    top: 24px;
+    bottom: 24px;
+    width: 22px;
+    background:
+      repeating-linear-gradient(
+        180deg,
+        #8b6914 0px,
+        #d4a84b 3px,
+        #f5d78e 6px,
+        #d4a84b 9px,
+        #a67c00 12px,
+        #8b6914 15px
+      ),
+      linear-gradient(90deg,
+        #6b5210 0%,
+        #8b6914 10%,
+        #d4a84b 25%,
+        #f5d78e 40%,
+        #d4a84b 60%,
+        #a67c00 75%,
+        #8b6914 90%,
+        #6b5210 100%
+      );
+    background-blend-mode: overlay;
+    border-radius: 11px;
+    box-shadow:
+      3px 0 8px rgba(0,0,0,0.4),
+      -2px 0 4px rgba(0,0,0,0.2),
+      inset 2px 0 4px rgba(255,255,255,0.3),
+      inset -2px 0 4px rgba(0,0,0,0.2);
+    z-index: 2;
+  }
+
+  .scroll-rod-fixed-left .scroll-rod-body-fixed {
+    right: 8px;
+  }
+
+  .scroll-rod-fixed-right .scroll-rod-body-fixed {
+    left: 8px;
+  }
+
+  /* 玉石顶饰 - 固定版 */
+  .scroll-rod-cap-fixed {
+    position: absolute;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: radial-gradient(ellipse at 30% 30%,
       #e8f5e9 0%,
@@ -257,93 +308,91 @@
       #388e3c 100%
     );
     box-shadow:
-      0 4px 8px rgba(0,0,0,0.4),
-      inset 0 2px 4px rgba(255,255,255,0.4),
-      inset 0 -2px 4px rgba(0,0,0,0.2);
-    border: 2px solid #2e7d32;
+      0 4px 12px rgba(0,0,0,0.5),
+      inset 0 3px 6px rgba(255,255,255,0.5),
+      inset 0 -3px 6px rgba(0,0,0,0.3);
+    border: 3px solid #2e7d32;
+    z-index: 3;
+    transition: transform 0.1s ease-out;
   }
 
-  .scroll-rod-cap-top {
+  .scroll-rod-fixed-left .scroll-rod-cap-fixed {
+    right: 3px;
+  }
+
+  .scroll-rod-fixed-right .scroll-rod-cap-fixed {
+    left: 3px;
+  }
+
+  .scroll-rod-cap-top-fixed {
     top: 0;
   }
 
-  .scroll-rod-cap-bottom {
+  .scroll-rod-cap-bottom-fixed {
     bottom: 0;
   }
 
-  /* 画轴金属环装饰 */
-  .scroll-rod-ring {
+  /* 金属环 - 固定版 */
+  .scroll-rod-ring-fixed {
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 24px;
-    height: 8px;
+    width: 28px;
+    height: 10px;
     background: linear-gradient(180deg,
       #ffd700 0%,
       #ffecb3 30%,
       #ffd700 50%,
       #b8860b 100%
     );
-    border-radius: 2px;
+    border-radius: 3px;
     box-shadow:
-      0 1px 2px rgba(0,0,0,0.3),
-      inset 0 1px 1px rgba(255,255,255,0.5);
+      0 2px 4px rgba(0,0,0,0.4),
+      inset 0 1px 2px rgba(255,255,255,0.5);
+    z-index: 4;
   }
 
-  .scroll-rod-ring-top {
-    top: 28px;
+  .scroll-rod-fixed-left .scroll-rod-ring-fixed {
+    right: 5px;
   }
 
-  .scroll-rod-ring-bottom {
-    bottom: 28px;
+  .scroll-rod-fixed-right .scroll-rod-ring-fixed {
+    left: 5px;
   }
 
-  /* 左侧画轴阴影（投射到画面上） */
-  .scroll-rod-left::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: -20px;
-    width: 20px;
-    height: 100%;
-    background: linear-gradient(90deg, rgba(0,0,0,0.15), transparent);
-    pointer-events: none;
+  .scroll-rod-ring-top-fixed {
+    top: 32px;
   }
 
-  /* 右侧画轴阴影（投射到画面上） */
-  .scroll-rod-right::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -20px;
-    width: 20px;
-    height: 100%;
-    background: linear-gradient(-90deg, rgba(0,0,0,0.15), transparent);
-    pointer-events: none;
+  .scroll-rod-ring-bottom-fixed {
+    bottom: 32px;
   }
 
-  /* 画卷容器（带画轴的整体） */
-  .painting-scroll {
-    position: relative;
-    display: flex;
-    align-items: stretch;
-    perspective: 2000px;
-    transform-style: preserve-3d;
+  /* 画卷内容滚动区域 */
+  .scroll-content-area {
+    scrollbar-width: thin;
+    scrollbar-color: var(--light-ink) transparent;
   }
 
-  /* 画卷内容区域 */
-  .painting-content {
-    position: relative;
+  .scroll-content-area::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .scroll-content-area::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scroll-content-area::-webkit-scrollbar-thumb {
+    background: rgba(90, 77, 61, 0.3);
+    border-radius: 3px;
+  }
+
+  /* 画卷纸张 */
+  .painting-paper {
     background: var(--paper);
     border-top: 3px solid #8b6914;
     border-bottom: 3px solid #8b6914;
     box-shadow:
       0 4px 20px var(--shadow),
-      0 8px 40px rgba(44, 36, 27, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.6);
-    transform-style: preserve-3d;
-    /* 添加纸张纹理感 */
+      0 8px 40px rgba(44, 36, 27, 0.1);
     background-image:
       linear-gradient(180deg, var(--paper) 0%, #f0ede6 50%, var(--paper) 100%),
       url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
@@ -359,6 +408,7 @@
     width: 30px;
     pointer-events: none;
     z-index: 5;
+    transition: width 0.2s ease-out, background 0.2s ease-out;
   }
 
   .painting-content::before {

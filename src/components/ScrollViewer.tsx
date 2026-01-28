@@ -4,25 +4,46 @@ import EditYearModal from './EditYearModal';
 import type { YearData } from '@/types';
 import { ChevronLeft, ChevronRight, Download, RotateCcw, Edit3, UserCircle } from 'lucide-react';
 
-// 画轴组件 - 支持动态旋转
-const ScrollRod: React.FC<{ position: 'left' | 'right'; rotation: number }> = ({ position, rotation }) => (
-  <div
-    className={`scroll-rod scroll-rod-${position}`}
-    style={{
-      transform: `rotateY(${rotation}deg)`,
-      transformStyle: 'preserve-3d',
-    }}
-  >
+// 画轴组件 - 固定在屏幕两侧
+const ScrollRod: React.FC<{
+  position: 'left' | 'right';
+  rotation: number;
+  thickness: number; // 卷入的"厚度"
+}> = ({ position, rotation, thickness }) => (
+  <div className={`scroll-rod-fixed scroll-rod-fixed-${position}`}>
+    {/* 卷入的纸张厚度效果 */}
+    <div
+      className="scroll-rod-paper-roll"
+      style={{
+        width: `${Math.max(8, thickness)}px`,
+        backgroundPosition: `0 ${rotation}px`,
+      }}
+    />
     {/* 画轴主体 */}
-    <div className="scroll-rod-body" />
+    <div
+      className="scroll-rod-body-fixed"
+      style={{
+        backgroundPosition: `0 ${rotation}px`,
+      }}
+    />
     {/* 顶部玉石装饰 */}
-    <div className="scroll-rod-cap scroll-rod-cap-top" />
+    <div
+      className="scroll-rod-cap-fixed scroll-rod-cap-top-fixed"
+      style={{
+        transform: `translateX(-50%) rotate(${rotation * 2}deg)`,
+      }}
+    />
     {/* 底部玉石装饰 */}
-    <div className="scroll-rod-cap scroll-rod-cap-bottom" />
+    <div
+      className="scroll-rod-cap-fixed scroll-rod-cap-bottom-fixed"
+      style={{
+        transform: `translateX(-50%) rotate(${rotation * 2}deg)`,
+      }}
+    />
     {/* 顶部金属环 */}
-    <div className="scroll-rod-ring scroll-rod-ring-top" />
+    <div className="scroll-rod-ring-fixed scroll-rod-ring-top-fixed" />
     {/* 底部金属环 */}
-    <div className="scroll-rod-ring scroll-rod-ring-bottom" />
+    <div className="scroll-rod-ring-fixed scroll-rod-ring-bottom-fixed" />
   </div>
 );
 
@@ -43,16 +64,17 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
   // 编辑模态框状态
   const [editingYear, setEditingYear] = useState<YearData | null>(null);
 
-  // 画轴旋转状态
+  // 画轴状态
   const [leftRodRotation, setLeftRodRotation] = useState(0);
   const [rightRodRotation, setRightRodRotation] = useState(0);
+  const [leftRodThickness, setLeftRodThickness] = useState(8);
+  const [rightRodThickness, setRightRodThickness] = useState(8);
 
-  // 滚动速度追踪
+  // 滚动追踪
   const lastScrollLeftRef = useRef(0);
-  const scrollVelocityRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
 
-  // 拖拽状态 - 使用 ref 避免闭包问题
+  // 拖拽状态
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
@@ -75,41 +97,39 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
     }
   }, [checkScroll, years]);
 
-  // 画轴旋转动画
+  // 画轴动画 - 根据滚动位置计算卷入效果
   useEffect(() => {
     const scrollEl = scrollRef.current;
     if (!scrollEl) return;
 
-    let lastTime = performance.now();
+    let accumulatedRotation = 0;
 
     const updateAnimation = () => {
-      const currentTime = performance.now();
-      const deltaTime = currentTime - lastTime;
-      lastTime = currentTime;
+      const { scrollLeft, scrollWidth, clientWidth } = scrollEl;
+      const maxScroll = scrollWidth - clientWidth;
+      const scrollDelta = scrollLeft - lastScrollLeftRef.current;
+      lastScrollLeftRef.current = scrollLeft;
 
-      const currentScrollLeft = scrollEl.scrollLeft;
-      const scrollDelta = currentScrollLeft - lastScrollLeftRef.current;
-      lastScrollLeftRef.current = currentScrollLeft;
+      // 累积旋转（模拟画轴转动）
+      accumulatedRotation += scrollDelta * 0.3;
 
-      // 计算滚动速度（像素/毫秒）
-      const velocity = deltaTime > 0 ? scrollDelta / deltaTime : 0;
+      // 计算滚动百分比
+      const scrollPercent = maxScroll > 0 ? scrollLeft / maxScroll : 0;
 
-      // 平滑过渡速度
-      scrollVelocityRef.current = scrollVelocityRef.current * 0.8 + velocity * 0.2;
+      // 保留最后5年可见（约 25% 的内容）
+      const minVisiblePercent = 0.15;
+      const maxVisiblePercent = 0.85;
 
-      // 根据滚动速度计算画轴旋转角度
-      // 向右滚动（正速度）：左轴顺时针，右轴逆时针
-      // 向左滚动（负速度）：左轴逆时针，右轴顺时针
-      const rotationSpeed = scrollVelocityRef.current * 50; // 调整旋转幅度
-      const maxRotation = 25; // 最大旋转角度
+      // 左侧画轴：滚动越多，卷入越多（厚度增加）
+      const leftThickness = 8 + Math.max(0, scrollPercent - minVisiblePercent) * 80;
 
-      // 限制旋转角度范围
-      const clampedRotation = Math.max(-maxRotation, Math.min(maxRotation, rotationSpeed));
+      // 右侧画轴：滚动越少，卷入越多
+      const rightThickness = 8 + Math.max(0, (1 - scrollPercent) - minVisiblePercent) * 80;
 
-      // 左轴：收卷方向
-      setLeftRodRotation(clampedRotation);
-      // 右轴：展开方向（相反）
-      setRightRodRotation(-clampedRotation);
+      setLeftRodRotation(accumulatedRotation);
+      setRightRodRotation(-accumulatedRotation);
+      setLeftRodThickness(leftThickness);
+      setRightRodThickness(rightThickness);
 
       animationFrameRef.current = requestAnimationFrame(updateAnimation);
     };
@@ -142,16 +162,13 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // ========== 统一的拖拽/滚动事件处理 ==========
+  // 拖拽/滚动事件处理
   useEffect(() => {
     const scrollEl = scrollRef.current;
     if (!scrollEl) return;
 
-    // 鼠标按下
     const handleMouseDown = (e: MouseEvent) => {
-      // 只响应左键
       if (e.button !== 0) return;
-      // 如果点击的是按钮，不启动拖拽
       const target = e.target as HTMLElement;
       if (target.closest('button')) return;
 
@@ -164,7 +181,6 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
       document.body.style.userSelect = 'none';
     };
 
-    // 鼠标移动 - 绑定到 document 确保拖出容器也能工作
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDraggingRef.current) return;
       e.preventDefault();
@@ -174,19 +190,16 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
       scrollEl.scrollLeft = scrollLeftRef.current + walk;
     };
 
-    // 鼠标松开
     const handleMouseUp = () => {
       if (!isDraggingRef.current) return;
       isDraggingRef.current = false;
       scrollEl.style.cursor = 'grab';
       document.body.style.userSelect = '';
-      // 延迟重置拖拽距离
       setTimeout(() => {
         dragDistanceRef.current = 0;
       }, 100);
     };
 
-    // 触摸开始
     const handleTouchStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest('button')) return;
@@ -198,7 +211,6 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
       dragDistanceRef.current = 0;
     };
 
-    // 触摸移动
     const handleTouchMove = (e: TouchEvent) => {
       if (!isDraggingRef.current) return;
       e.preventDefault();
@@ -209,7 +221,6 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
       scrollEl.scrollLeft = scrollLeftRef.current + walk;
     };
 
-    // 触摸结束
     const handleTouchEnd = () => {
       isDraggingRef.current = false;
       setTimeout(() => {
@@ -217,21 +228,18 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
       }, 100);
     };
 
-    // 鼠标滚轮（垂直滚动转水平滚动）
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
       scrollEl.scrollLeft += delta;
     };
 
-    // 添加事件监听 - 容器上的事件
     scrollEl.addEventListener('mousedown', handleMouseDown);
     scrollEl.addEventListener('touchstart', handleTouchStart, { passive: false });
     scrollEl.addEventListener('touchmove', handleTouchMove, { passive: false });
     scrollEl.addEventListener('touchend', handleTouchEnd);
     scrollEl.addEventListener('wheel', handleWheel, { passive: false });
 
-    // 全局鼠标事件 - 确保拖出容器也能工作
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
@@ -260,14 +268,11 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
     return data.text || `${data.year}`;
   };
 
-  // 处理年份卡片点击（编辑）
   const handleYearClick = (yearData: YearData) => {
-    // 如果拖拽距离超过 5px，认为是拖拽而非点击
     if (dragDistanceRef.current > 5) return;
     setEditingYear(yearData);
   };
 
-  // 保存编辑
   const handleSaveEdit = (text: string) => {
     if (editingYear && onUpdateYear) {
       onUpdateYear(editingYear.year, text);
@@ -285,10 +290,9 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
           filter: 'blur(8px)',
-          transform: 'scale(1.1)', // 防止边缘出现白边
+          transform: 'scale(1.1)',
         }}
       />
-      {/* 半透明遮罩层 */}
       <div className="absolute inset-0 z-0 bg-[var(--paper)]/70" />
 
       {/* 编辑模态框 */}
@@ -301,9 +305,23 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
         onClose={() => setEditingYear(null)}
       />
 
+      {/* 固定的左侧画轴 */}
+      <ScrollRod
+        position="left"
+        rotation={leftRodRotation}
+        thickness={leftRodThickness}
+      />
+
+      {/* 固定的右侧画轴 */}
+      <ScrollRod
+        position="right"
+        rotation={rightRodRotation}
+        thickness={rightRodThickness}
+      />
+
       {/* 顶部标题栏 */}
-      <div className="absolute top-0 left-0 right-0 z-20 p-4 md:p-6 flex items-center justify-between pointer-events-none bg-gradient-to-b from-[var(--paper)] to-transparent">
-        <div className="flex items-center gap-3 md:gap-4 pointer-events-auto">
+      <div className="absolute top-0 left-0 right-0 z-30 p-4 md:p-6 flex items-center justify-between pointer-events-none bg-gradient-to-b from-[var(--paper)] to-transparent">
+        <div className="flex items-center gap-3 md:gap-4 pointer-events-auto ml-12 md:ml-16">
           <div className="seal text-[10px] md:text-xs scale-75 md:scale-100 origin-left">长卷</div>
           <div>
             <h1 className="text-lg md:text-xl font-medium brush-text text-[var(--ink)]">
@@ -315,7 +333,7 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-3 pointer-events-auto">
+        <div className="flex items-center gap-2 md:gap-3 pointer-events-auto mr-12 md:mr-16">
           {onSwitchUser && (
             <button
               onClick={onSwitchUser}
@@ -348,10 +366,10 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
         </div>
       </div>
 
-      {/* 滚动控制按钮 - 桌面端显示 */}
+      {/* 滚动控制按钮 */}
       <button
         onClick={() => scroll('left')}
-        className={`hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full 
+        className={`hidden md:flex absolute left-16 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full
                    bg-[var(--paper)] border border-[var(--light-ink)] shadow-lg
                    items-center justify-center transition-all pointer-events-auto
                    ${canScrollLeft ? 'opacity-100 hover:bg-[var(--secondary)]' : 'opacity-0 pointer-events-none'}`}
@@ -361,7 +379,7 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
 
       <button
         onClick={() => scroll('right')}
-        className={`hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full 
+        className={`hidden md:flex absolute right-16 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full
                    bg-[var(--paper)] border border-[var(--light-ink)] shadow-lg
                    items-center justify-center transition-all pointer-events-auto
                    ${canScrollRight ? 'opacity-100 hover:bg-[var(--secondary)]' : 'opacity-0 pointer-events-none'}`}
@@ -369,99 +387,91 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
         <ChevronRight size={20} className="md:w-6 md:h-6 text-[var(--ink)]" />
       </button>
 
-      {/* 长卷容器 */}
+      {/* 画卷内容区域 */}
       <div
         ref={scrollRef}
-        className="scroll-container relative z-10 flex-1 flex items-center px-4 md:px-12 py-8 md:py-12 overflow-x-auto overflow-y-hidden"
+        className="scroll-content-area relative z-10 flex-1 flex items-center overflow-x-auto overflow-y-hidden"
         style={{
           cursor: 'grab',
           WebkitOverflowScrolling: 'touch',
+          marginLeft: '48px',
+          marginRight: '48px',
         }}
       >
-        {/* 画卷整体结构（带画轴） */}
-        <div className="painting-scroll h-[420px] md:h-[520px] flex-shrink-0">
-          {/* 左侧画轴 */}
-          <ScrollRod position="left" rotation={leftRodRotation} />
-
-          {/* 画卷内容区域 */}
-          <div className="painting-content flex h-full">
-            {/* 卷首装饰 */}
-            <div className="scroll-header h-full">
-              <div className="vertical-text text-[var(--accent-gold)] text-xs md:text-sm tracking-[0.3em] opacity-80">
-                春秋数载
-              </div>
-            </div>
-
-            {/* 年份卡片区域 */}
-            {years.map((yearData, index) => (
-              <div
-                key={yearData.year}
-                className={`year-card w-[140px] md:w-[200px] h-full flex-shrink-0 ${yearData.isFuture ? 'ai-generated' : ''}
-                           relative group hover:bg-[#faf8f3] transition-colors`}
-                style={{
-                  animationDelay: `${index * 50}ms`,
-                }}
-                onClick={() => handleYearClick(yearData)}
-              >
-                {/* 编辑按钮 */}
-                <button
-                  className="absolute top-1 md:top-2 right-1 md:right-2 z-10 p-1.5 md:p-2 rounded-full bg-[var(--paper)] border border-[var(--light-ink)]
-                           opacity-0 group-hover:opacity-100 transition-opacity shadow-sm
-                           hover:bg-[var(--secondary)] pointer-events-auto"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingYear(yearData);
-                  }}
-                >
-                  <Edit3 size={12} className="md:w-4 md:h-4 text-[var(--light-ink)]" />
-                </button>
-
-                {/* 年份标签 */}
-                <div className="year-label text-xl md:text-3xl font-light text-[var(--ink)] tracking-widest mb-2 md:mb-4">
-                  {yearData.year}
-                </div>
-
-                {/* 山水画 */}
-                <div className="flex-1 flex items-center justify-center">
-                  <MountainScape
-                    year={yearData.year}
-                    text={getYearText(yearData)}
-                    size={100}
-                  />
-                </div>
-
-                {/* 年份描述 */}
-                <div className="px-2 md:px-4 pb-4 md:pb-6">
-                  <p className={`text-[10px] md:text-xs text-center leading-relaxed line-clamp-3 ${yearData.text ? 'text-[var(--ink)]' : 'text-[var(--light-ink)]'}`}>
-                    {getYearText(yearData)}
-                  </p>
-                </div>
-
-                {/* 分隔线装饰 */}
-                {index < years.length - 1 && (
-                  <div className="absolute right-0 top-1/4 bottom-1/4 w-px bg-gradient-to-b
-                                from-transparent via-[var(--light-ink)] to-transparent opacity-20" />
-                )}
-              </div>
-            ))}
-
-            {/* 卷尾装饰 */}
-            <div className="scroll-footer h-full">
-              <div className="vertical-text text-[var(--accent-gold)] text-xs md:text-sm tracking-[0.3em] opacity-80">
-                卷终
-              </div>
+        <div className="painting-paper flex h-[420px] md:h-[520px] flex-shrink-0">
+          {/* 卷首装饰 */}
+          <div className="scroll-header h-full">
+            <div className="vertical-text text-[var(--accent-gold)] text-xs md:text-sm tracking-[0.3em] opacity-80">
+              春秋数载
             </div>
           </div>
 
-          {/* 右侧画轴 */}
-          <ScrollRod position="right" rotation={rightRodRotation} />
+          {/* 年份卡片区域 */}
+          {years.map((yearData, index) => (
+            <div
+              key={yearData.year}
+              className={`year-card w-[140px] md:w-[200px] h-full flex-shrink-0 ${yearData.isFuture ? 'ai-generated' : ''}
+                         relative group hover:bg-[#faf8f3] transition-colors`}
+              style={{
+                animationDelay: `${index * 50}ms`,
+              }}
+              onClick={() => handleYearClick(yearData)}
+            >
+              {/* 编辑按钮 */}
+              <button
+                className="absolute top-1 md:top-2 right-1 md:right-2 z-10 p-1.5 md:p-2 rounded-full bg-[var(--paper)] border border-[var(--light-ink)]
+                         opacity-0 group-hover:opacity-100 transition-opacity shadow-sm
+                         hover:bg-[var(--secondary)] pointer-events-auto"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingYear(yearData);
+                }}
+              >
+                <Edit3 size={12} className="md:w-4 md:h-4 text-[var(--light-ink)]" />
+              </button>
+
+              {/* 年份标签 */}
+              <div className="year-label text-xl md:text-3xl font-light text-[var(--ink)] tracking-widest mb-2 md:mb-4">
+                {yearData.year}
+              </div>
+
+              {/* 山水画 */}
+              <div className="flex-1 flex items-center justify-center">
+                <MountainScape
+                  year={yearData.year}
+                  text={getYearText(yearData)}
+                  size={100}
+                />
+              </div>
+
+              {/* 年份描述 */}
+              <div className="px-2 md:px-4 pb-4 md:pb-6">
+                <p className={`text-[10px] md:text-xs text-center leading-relaxed line-clamp-3 ${yearData.text ? 'text-[var(--ink)]' : 'text-[var(--light-ink)]'}`}>
+                  {getYearText(yearData)}
+                </p>
+              </div>
+
+              {/* 分隔线装饰 */}
+              {index < years.length - 1 && (
+                <div className="absolute right-0 top-1/4 bottom-1/4 w-px bg-gradient-to-b
+                              from-transparent via-[var(--light-ink)] to-transparent opacity-20" />
+              )}
+            </div>
+          ))}
+
+          {/* 卷尾装饰 */}
+          <div className="scroll-footer h-full">
+            <div className="vertical-text text-[var(--accent-gold)] text-xs md:text-sm tracking-[0.3em] opacity-80">
+              卷终
+            </div>
+          </div>
         </div>
       </div>
 
       {/* 底部提示 */}
       <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-10 text-[10px] md:text-xs text-[var(--light-ink)] opacity-60 text-center px-4">
-        <span className="hidden md:inline">左右拖拽浏览长卷 · 点击卡片编辑内容 · </span>
-        <span className="md:hidden">左右滑动浏览 · 点击编辑 · </span>
+        <span className="hidden md:inline">左右拖拽展开画卷 · 点击卡片编辑内容 · </span>
+        <span className="md:hidden">左右滑动展开 · 点击编辑 · </span>
         共 {years.length} 年
       </div>
     </div>
