@@ -197,6 +197,219 @@
     box-shadow: inset 0 0 8px rgba(0,0,0,0.1);
     transform: rotate(-3deg);
   }
+
+  /* 画轴效果 */
+  .scroll-rod {
+    position: relative;
+    width: 28px;
+    height: 100%;
+    flex-shrink: 0;
+    z-index: 15;
+    transition: transform 0.1s ease-out;
+    transform-origin: center center;
+    perspective: 1000px;
+  }
+
+  .scroll-rod-body {
+    position: absolute;
+    top: 20px;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    background: linear-gradient(90deg,
+      #8b6914 0%,
+      #d4a84b 15%,
+      #f5d78e 30%,
+      #d4a84b 50%,
+      #a67c00 70%,
+      #8b6914 85%,
+      #6b5210 100%
+    );
+    border-radius: 10px;
+    box-shadow:
+      2px 0 4px rgba(0,0,0,0.3),
+      -1px 0 2px rgba(255,255,255,0.2) inset,
+      0 0 10px rgba(139,105,20,0.3);
+    transition: box-shadow 0.1s ease-out;
+  }
+
+  /* 画轴旋转时的阴影变化 */
+  .scroll-rod:hover .scroll-rod-body {
+    box-shadow:
+      3px 0 6px rgba(0,0,0,0.4),
+      -1px 0 2px rgba(255,255,255,0.2) inset,
+      0 0 15px rgba(139,105,20,0.4);
+  }
+
+  /* 画轴顶部装饰 - 玉石头 */
+  .scroll-rod-cap {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 30% 30%,
+      #e8f5e9 0%,
+      #a5d6a7 30%,
+      #66bb6a 60%,
+      #388e3c 100%
+    );
+    box-shadow:
+      0 4px 8px rgba(0,0,0,0.4),
+      inset 0 2px 4px rgba(255,255,255,0.4),
+      inset 0 -2px 4px rgba(0,0,0,0.2);
+    border: 2px solid #2e7d32;
+  }
+
+  .scroll-rod-cap-top {
+    top: 0;
+  }
+
+  .scroll-rod-cap-bottom {
+    bottom: 0;
+  }
+
+  /* 画轴金属环装饰 */
+  .scroll-rod-ring {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 8px;
+    background: linear-gradient(180deg,
+      #ffd700 0%,
+      #ffecb3 30%,
+      #ffd700 50%,
+      #b8860b 100%
+    );
+    border-radius: 2px;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.3),
+      inset 0 1px 1px rgba(255,255,255,0.5);
+  }
+
+  .scroll-rod-ring-top {
+    top: 28px;
+  }
+
+  .scroll-rod-ring-bottom {
+    bottom: 28px;
+  }
+
+  /* 左侧画轴阴影（投射到画面上） */
+  .scroll-rod-left::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -20px;
+    width: 20px;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(0,0,0,0.15), transparent);
+    pointer-events: none;
+  }
+
+  /* 右侧画轴阴影（投射到画面上） */
+  .scroll-rod-right::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -20px;
+    width: 20px;
+    height: 100%;
+    background: linear-gradient(-90deg, rgba(0,0,0,0.15), transparent);
+    pointer-events: none;
+  }
+
+  /* 画卷容器（带画轴的整体） */
+  .painting-scroll {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    perspective: 2000px;
+    transform-style: preserve-3d;
+  }
+
+  /* 画卷内容区域 */
+  .painting-content {
+    position: relative;
+    background: var(--paper);
+    border-top: 3px solid #8b6914;
+    border-bottom: 3px solid #8b6914;
+    box-shadow:
+      0 4px 20px var(--shadow),
+      0 8px 40px rgba(44, 36, 27, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+    transform-style: preserve-3d;
+    /* 添加纸张纹理感 */
+    background-image:
+      linear-gradient(180deg, var(--paper) 0%, #f0ede6 50%, var(--paper) 100%),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+  }
+
+  /* 画卷边缘卷曲效果 */
+  .painting-content::before,
+  .painting-content::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .painting-content::before {
+    left: 0;
+    background: linear-gradient(90deg,
+      rgba(139,105,20,0.12) 0%,
+      rgba(139,105,20,0.05) 30%,
+      transparent 100%
+    );
+    border-left: 1px solid rgba(139,105,20,0.15);
+  }
+
+  .painting-content::after {
+    right: 0;
+    background: linear-gradient(-90deg,
+      rgba(139,105,20,0.12) 0%,
+      rgba(139,105,20,0.05) 30%,
+      transparent 100%
+    );
+    border-right: 1px solid rgba(139,105,20,0.15);
+  }
+
+  /* 卷首装饰文字区域 */
+  .scroll-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    min-width: 60px;
+    background: linear-gradient(90deg,
+      rgba(139,105,20,0.1) 0%,
+      transparent 100%
+    );
+    border-right: 1px solid rgba(139,105,20,0.2);
+  }
+
+  /* 卷尾装饰文字区域 */
+  .scroll-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    min-width: 60px;
+    background: linear-gradient(-90deg,
+      rgba(139,105,20,0.1) 0%,
+      transparent 100%
+    );
+    border-left: 1px solid rgba(139,105,20,0.2);
+  }
 }
 
 @layer utilities {

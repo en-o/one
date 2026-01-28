@@ -13,6 +13,100 @@ const getSeed = (year: number, text: string) => {
   return (len * 7 + yearSum * 13) % 100;
 };
 
+// 绘制画轴
+const drawScrollRod = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  topY: number,
+  bottomY: number,
+  rodWidth: number = 24
+) => {
+  const rodHeight = bottomY - topY;
+  const capSize = 36;
+  const ringHeight = 10;
+
+  // 画轴主体 - 木纹渐变
+  const rodGradient = ctx.createLinearGradient(x - rodWidth / 2, 0, x + rodWidth / 2, 0);
+  rodGradient.addColorStop(0, '#8b6914');
+  rodGradient.addColorStop(0.15, '#d4a84b');
+  rodGradient.addColorStop(0.3, '#f5d78e');
+  rodGradient.addColorStop(0.5, '#d4a84b');
+  rodGradient.addColorStop(0.7, '#a67c00');
+  rodGradient.addColorStop(0.85, '#8b6914');
+  rodGradient.addColorStop(1, '#6b5210');
+
+  ctx.fillStyle = rodGradient;
+  ctx.beginPath();
+  ctx.roundRect(x - rodWidth / 2, topY + capSize / 2, rodWidth, rodHeight - capSize, rodWidth / 2);
+  ctx.fill();
+
+  // 画轴阴影
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetX = 3;
+  ctx.shadowOffsetY = 0;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+
+  // 顶部玉石装饰
+  const topCapGradient = ctx.createRadialGradient(
+    x - capSize * 0.2, topY + capSize * 0.3, 0,
+    x, topY + capSize / 2, capSize / 2
+  );
+  topCapGradient.addColorStop(0, '#e8f5e9');
+  topCapGradient.addColorStop(0.3, '#a5d6a7');
+  topCapGradient.addColorStop(0.6, '#66bb6a');
+  topCapGradient.addColorStop(1, '#388e3c');
+
+  ctx.fillStyle = topCapGradient;
+  ctx.beginPath();
+  ctx.arc(x, topY + capSize / 2, capSize / 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 玉石边框
+  ctx.strokeStyle = '#2e7d32';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 底部玉石装饰
+  const bottomCapGradient = ctx.createRadialGradient(
+    x - capSize * 0.2, bottomY - capSize * 0.3, 0,
+    x, bottomY - capSize / 2, capSize / 2
+  );
+  bottomCapGradient.addColorStop(0, '#e8f5e9');
+  bottomCapGradient.addColorStop(0.3, '#a5d6a7');
+  bottomCapGradient.addColorStop(0.6, '#66bb6a');
+  bottomCapGradient.addColorStop(1, '#388e3c');
+
+  ctx.fillStyle = bottomCapGradient;
+  ctx.beginPath();
+  ctx.arc(x, bottomY - capSize / 2, capSize / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#2e7d32';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 顶部金属环
+  const ringGradient = ctx.createLinearGradient(0, topY + capSize, 0, topY + capSize + ringHeight);
+  ringGradient.addColorStop(0, '#ffd700');
+  ringGradient.addColorStop(0.3, '#ffecb3');
+  ringGradient.addColorStop(0.5, '#ffd700');
+  ringGradient.addColorStop(1, '#b8860b');
+
+  ctx.fillStyle = ringGradient;
+  ctx.beginPath();
+  ctx.roundRect(x - rodWidth / 2 - 2, topY + capSize, rodWidth + 4, ringHeight, 2);
+  ctx.fill();
+
+  // 底部金属环
+  ctx.fillStyle = ringGradient;
+  ctx.beginPath();
+  ctx.roundRect(x - rodWidth / 2 - 2, bottomY - capSize - ringHeight, rodWidth + 4, ringHeight, 2);
+  ctx.fill();
+};
+
 // 在 Canvas 上绘制连续的山水画
 const drawContinuousMountainScape = (
   ctx: CanvasRenderingContext2D,
@@ -254,36 +348,101 @@ export const useScrollExport = () => {
       const cardWidth = 160;
       const cardHeight = 400;
       const padding = 60;
+      const rodWidth = 30; // 画轴宽度
+      const headerWidth = 50; // 卷首装饰区域宽度
       const scale = 2; // 高清输出
 
-      canvas.width = (years.length * cardWidth + padding * 2) * scale;
+      const totalContentWidth = years.length * cardWidth + headerWidth * 2;
+      const totalWidth = totalContentWidth + rodWidth * 2 + padding * 2;
+
+      canvas.width = totalWidth * scale;
       canvas.height = (cardHeight + padding * 2) * scale;
       ctx.scale(scale, scale);
 
       // 绘制整体背景
       ctx.fillStyle = '#f7f5f0';
-      ctx.fillRect(0, 0, canvas.width / scale, canvas.height / scale);
+      ctx.fillRect(0, 0, totalWidth, cardHeight + padding * 2);
+
+      // 绘制画卷边框（金色边框）
+      const contentStartX = padding + rodWidth;
+      const contentEndX = contentStartX + totalContentWidth;
+
+      // 上边框
+      ctx.fillStyle = '#8b6914';
+      ctx.fillRect(contentStartX, padding - 4, totalContentWidth, 4);
+
+      // 下边框
+      ctx.fillRect(contentStartX, padding + cardHeight, totalContentWidth, 4);
 
       // 绘制连续的山水画
-      drawContinuousMountainScape(ctx, years, cardWidth, cardHeight, padding);
+      drawContinuousMountainScape(ctx, years, cardWidth, cardHeight, padding + rodWidth + headerWidth);
 
-      // 绘制卷首装饰
-      ctx.fillStyle = 'rgba(90, 77, 61, 0.3)';
-      ctx.font = '14px "Noto Serif SC", serif';
-      ctx.textAlign = 'left';
+      // 绘制卷首装饰区域
+      const headerGradient = ctx.createLinearGradient(contentStartX, 0, contentStartX + headerWidth, 0);
+      headerGradient.addColorStop(0, 'rgba(139,105,20,0.15)');
+      headerGradient.addColorStop(1, 'rgba(139,105,20,0)');
+      ctx.fillStyle = headerGradient;
+      ctx.fillRect(contentStartX, padding, headerWidth, cardHeight);
+
+      // 卷首竖线
+      ctx.strokeStyle = 'rgba(139,105,20,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(contentStartX + headerWidth, padding);
+      ctx.lineTo(contentStartX + headerWidth, padding + cardHeight);
+      ctx.stroke();
+
+      // 卷首文字
+      ctx.fillStyle = '#c9a961';
+      ctx.font = '16px "Noto Serif SC", serif';
+      ctx.textAlign = 'center';
       ctx.save();
-      ctx.translate(padding - 30, padding + cardHeight / 2);
+      ctx.translate(contentStartX + headerWidth / 2, padding + cardHeight / 2);
       ctx.rotate(-Math.PI / 2);
-      ctx.fillText('春秋数载', 0, 0);
+      ctx.fillText('春秋数载', 0, 5);
       ctx.restore();
 
-      // 绘制卷尾装饰
-      ctx.textAlign = 'right';
+      // 绘制卷尾装饰区域
+      const footerStartX = contentEndX - headerWidth;
+      const footerGradient = ctx.createLinearGradient(footerStartX, 0, contentEndX, 0);
+      footerGradient.addColorStop(0, 'rgba(139,105,20,0)');
+      footerGradient.addColorStop(1, 'rgba(139,105,20,0.15)');
+      ctx.fillStyle = footerGradient;
+      ctx.fillRect(footerStartX, padding, headerWidth, cardHeight);
+
+      // 卷尾竖线
+      ctx.strokeStyle = 'rgba(139,105,20,0.3)';
+      ctx.beginPath();
+      ctx.moveTo(footerStartX, padding);
+      ctx.lineTo(footerStartX, padding + cardHeight);
+      ctx.stroke();
+
+      // 卷尾文字
+      ctx.fillStyle = '#c9a961';
       ctx.save();
-      ctx.translate(padding + years.length * cardWidth + 30, padding + cardHeight / 2);
+      ctx.translate(footerStartX + headerWidth / 2, padding + cardHeight / 2);
       ctx.rotate(Math.PI / 2);
-      ctx.fillText('卷终', 0, 0);
+      ctx.fillText('卷终', 0, 5);
       ctx.restore();
+
+      // 绘制左侧画轴
+      drawScrollRod(ctx, padding + rodWidth / 2, padding - 20, padding + cardHeight + 20, rodWidth - 6);
+
+      // 绘制右侧画轴
+      drawScrollRod(ctx, contentEndX + rodWidth / 2, padding - 20, padding + cardHeight + 20, rodWidth - 6);
+
+      // 画轴投影到画面的阴影
+      const leftShadowGradient = ctx.createLinearGradient(contentStartX, 0, contentStartX + 25, 0);
+      leftShadowGradient.addColorStop(0, 'rgba(0,0,0,0.2)');
+      leftShadowGradient.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = leftShadowGradient;
+      ctx.fillRect(contentStartX, padding, 25, cardHeight);
+
+      const rightShadowGradient = ctx.createLinearGradient(contentEndX - 25, 0, contentEndX, 0);
+      rightShadowGradient.addColorStop(0, 'rgba(0,0,0,0)');
+      rightShadowGradient.addColorStop(1, 'rgba(0,0,0,0.2)');
+      ctx.fillStyle = rightShadowGradient;
+      ctx.fillRect(contentEndX - 25, padding, 25, cardHeight);
 
       // 下载图片
       const link = document.createElement('a');
