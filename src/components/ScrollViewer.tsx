@@ -2,16 +2,18 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import MountainScape from './MountainScape';
 import EditYearModal from './EditYearModal';
 import type { YearData } from '@/types';
-import { ChevronLeft, ChevronRight, Download, RotateCcw, Edit3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, RotateCcw, Edit3, UserCircle } from 'lucide-react';
 
 interface ScrollViewerProps {
   years: YearData[];
+  userName?: string;
   onReset: () => void;
+  onSwitchUser?: () => void;
   onExport: () => void;
   onUpdateYear?: (year: number, text: string) => void;
 }
 
-const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, onUpdateYear }) => {
+const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, onSwitchUser, onExport, onUpdateYear }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -185,16 +187,31 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
     if (dragDistanceRef.current > 5) return;
     setEditingYear(yearData);
   };
-  
+
   // 保存编辑
   const handleSaveEdit = (text: string) => {
     if (editingYear && onUpdateYear) {
       onUpdateYear(editingYear.year, text);
     }
   };
-  
+
   return (
     <div className="relative w-full h-screen flex flex-col overflow-hidden">
+      {/* 虚化背景 */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: 'url(/them.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          filter: 'blur(8px)',
+          transform: 'scale(1.1)', // 防止边缘出现白边
+        }}
+      />
+      {/* 半透明遮罩层 */}
+      <div className="absolute inset-0 z-0 bg-[var(--paper)]/70" />
+
       {/* 编辑模态框 */}
       <EditYearModal
         isOpen={!!editingYear}
@@ -204,22 +221,33 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
         onSave={handleSaveEdit}
         onClose={() => setEditingYear(null)}
       />
-      
+
       {/* 顶部标题栏 */}
       <div className="absolute top-0 left-0 right-0 z-20 p-4 md:p-6 flex items-center justify-between pointer-events-none bg-gradient-to-b from-[var(--paper)] to-transparent">
         <div className="flex items-center gap-3 md:gap-4 pointer-events-auto">
           <div className="seal text-[10px] md:text-xs scale-75 md:scale-100 origin-left">长卷</div>
           <div>
             <h1 className="text-lg md:text-xl font-medium brush-text text-[var(--ink)]">
-              人生长卷
+              {userName ? `${userName}的春秋数载` : '春秋数载'}
             </h1>
             <p className="text-[10px] md:text-xs text-[var(--light-ink)]">
               {years.length > 0 && `${years[0].year} — ${years[years.length - 1].year}`}
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2 md:gap-3 pointer-events-auto">
+          {onSwitchUser && (
+            <button
+              onClick={onSwitchUser}
+              className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1.5 md:py-2 rounded-full bg-[var(--paper)] border border-[var(--light-ink)]
+                       text-[var(--light-ink)] hover:text-[var(--ink)] hover:border-[var(--ink)]
+                       transition-all text-xs md:text-sm shadow-sm hover:shadow-md"
+            >
+              <UserCircle size={12} className="md:w-4 md:h-4" />
+              <span className="hidden md:inline">切换用户</span>
+            </button>
+          )}
           <button
             onClick={onReset}
             className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1.5 md:py-2 rounded-full bg-[var(--paper)] border border-[var(--light-ink)]
@@ -240,7 +268,7 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
           </button>
         </div>
       </div>
-      
+
       {/* 滚动控制按钮 - 桌面端显示 */}
       <button
         onClick={() => scroll('left')}
@@ -251,7 +279,7 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
       >
         <ChevronLeft size={20} className="md:w-6 md:h-6 text-[var(--ink)]" />
       </button>
-      
+
       <button
         onClick={() => scroll('right')}
         className={`hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full 
@@ -261,17 +289,13 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
       >
         <ChevronRight size={20} className="md:w-6 md:h-6 text-[var(--ink)]" />
       </button>
-      
+
       {/* 长卷容器 */}
       <div
         ref={scrollRef}
-        className="scroll-container flex-1 flex items-center px-4 md:px-20 py-12 md:py-16 overflow-x-auto overflow-y-hidden"
+        className="scroll-container relative z-10 flex-1 flex items-center px-4 md:px-20 py-12 md:py-16 overflow-x-auto overflow-y-hidden"
         style={{
           cursor: 'grab',
-          background: `
-            linear-gradient(180deg, var(--paper) 0%, #f5f2ea 50%, var(--paper) 100%),
-            url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4d0c8' fill-opacity='0.2'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")
-          `,
           WebkitOverflowScrolling: 'touch',
         }}
       >
@@ -298,37 +322,37 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
               >
                 <Edit3 size={12} className="md:w-4 md:h-4 text-[var(--light-ink)]" />
               </button>
-              
+
               {/* 年份标签 */}
               <div className="year-label text-xl md:text-3xl font-light text-[var(--ink)] tracking-widest mb-2 md:mb-4">
                 {yearData.year}
               </div>
-              
+
               {/* 山水画 */}
               <div className="flex-1 flex items-center justify-center">
-                <MountainScape 
-                  year={yearData.year} 
+                <MountainScape
+                  year={yearData.year}
                   text={getYearText(yearData)}
                   size={100}
                 />
               </div>
-              
+
               {/* 年份描述 */}
               <div className="px-2 md:px-4 pb-4 md:pb-6">
                 <p className={`text-[10px] md:text-xs text-center leading-relaxed line-clamp-3 ${yearData.text ? 'text-[var(--ink)]' : 'text-[var(--light-ink)]'}`}>
                   {getYearText(yearData)}
                 </p>
               </div>
-              
+
               {/* 分隔线装饰 */}
               {index < years.length - 1 && (
-                <div className="absolute right-0 top-1/4 bottom-1/4 w-px bg-gradient-to-b 
+                <div className="absolute right-0 top-1/4 bottom-1/4 w-px bg-gradient-to-b
                               from-transparent via-[var(--light-ink)] to-transparent opacity-20" />
               )}
             </div>
           ))}
         </div>
-        
+
         {/* 卷尾装饰 */}
         <div className="flex-shrink-0 w-12 md:w-20 h-[400px] md:h-[500px] ml-2 md:ml-4 flex items-center justify-center">
           <div className="vertical-text text-[var(--light-ink)] text-xs md:text-sm tracking-widest opacity-50">
@@ -336,9 +360,9 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, onReset, onExport, o
           </div>
         </div>
       </div>
-      
+
       {/* 底部提示 */}
-      <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 text-[10px] md:text-xs text-[var(--light-ink)] opacity-60 text-center px-4">
+      <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-10 text-[10px] md:text-xs text-[var(--light-ink)] opacity-60 text-center px-4">
         <span className="hidden md:inline">左右拖拽浏览长卷 · 点击卡片编辑内容 · </span>
         <span className="md:hidden">左右滑动浏览 · 点击编辑 · </span>
         共 {years.length} 年

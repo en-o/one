@@ -4,6 +4,15 @@ export interface YearData {
   isFuture: boolean;
 }
 
+export interface UserData {
+  id: string;
+  name: string;
+  birthYear: number;
+  years: YearData[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface MountainScapeProps {
   year: number;
   text: string;

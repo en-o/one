@@ -1,16 +1,53 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import YearInputModal from '@/components/YearInputModal';
 import ScrollViewer from '@/components/ScrollViewer';
-import type { YearData } from '@/types';
+import type { YearData, UserData } from '@/types';
 import { useScrollExport } from '@/hooks/useScrollExport';
 import { Sparkles } from 'lucide-react';
+
+const STORAGE_KEY = 'life-scroll-users';
+const CURRENT_USER_KEY = 'life-scroll-current-user';
+
+// 从 localStorage 加载用户列表
+const loadUsers = (): UserData[] => {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+// 保存用户列表到 localStorage
+const saveUsers = (users: UserData[]) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+};
+
+// 加载当前用户 ID
+const loadCurrentUserId = (): string | null => {
+  return localStorage.getItem(CURRENT_USER_KEY);
+};
+
+// 保存当前用户 ID
+const saveCurrentUserId = (userId: string | null) => {
+  if (userId) {
+    localStorage.setItem(CURRENT_USER_KEY, userId);
+  } else {
+    localStorage.removeItem(CURRENT_USER_KEY);
+  }
+};
+
+// 生成唯一 ID
+const generateId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
 
 // 生成模拟数据（彩蛋功能）- 基于输入年份的人生叙事
 const generateDemoData = (startYear: number): YearData[] => {
   const current = new Date().getFullYear();
   const end = current + 3;
   const years: YearData[] = [];
-  
+
   // 人生叙事模板，基于年龄段
   const lifeNarratives: Record<number, string[]> = {
     0: ['呱呱坠地，来到这个世界', '初识人世，满眼好奇', '襁褓之中，被爱包围'],
@@ -80,7 +117,7 @@ const generateDemoData = (startYear: number): YearData[] => {
     64: ['身体健康最重要', '每天散步', '饮食清淡'],
     65: ['古稀之年即将到来', '回顾一生', '感恩所有'],
     66: ['老伴是最大财富', '相濡以沫', '携手同行'],
-    67: [' grandchildren 长大了', '不再那么需要我', '有点失落'],
+    67: ['孙辈长大了', '不再那么需要我', '有点失落'],
     68: ['身体大不如前', '但心态乐观', '活一天赚一天'],
     69: ['七十岁，古稀之年', '人生七十古来稀', '珍惜每一天'],
     70: ['走路变慢了', '但脑子还清楚', '喜欢回忆'],
@@ -114,26 +151,27 @@ const generateDemoData = (startYear: number): YearData[] => {
     98: ['生命的最后时光', '平静接受', '等待重逢'],
     99: ['这一生，值了', '爱过，被爱过', '无憾'],
   };
-  
+
   for (let y = startYear; y <= end; y++) {
     const age = y - startYear;
     const isFuture = y > current;
-    
+
     let text = '';
     if (!isFuture) {
-      const narratives = lifeNarratives[age] || ['这一年，平凡而珍贵', '继续向前走', '生活还在继续'];
+      const narratives =
+        lifeNarratives[age] || ['这一年，平凡而珍贵', '继续向前走', '生活还在继续'];
       // 根据年份选择不同的叙事
       const narrativeIndex = (y - startYear) % narratives.length;
       text = narratives[narrativeIndex];
     }
-    
+
     years.push({
       year: y,
       text,
       isFuture,
     });
   }
-  
+
   return years;
 };
 
@@ -142,116 +180,205 @@ const generateLifeData = (birthYear: number): YearData[] => {
   const current = new Date().getFullYear();
   const end = current + 3;
   const years: YearData[] = [];
-  
+
   for (let y = birthYear; y <= end; y++) {
     const isFuture = y > current;
-    
+
     years.push({
       year: y,
       text: '',
       isFuture,
     });
   }
-  
+
   return years;
 };
 
 function App() {
-  const [showModal, setShowModal] = useState(true);
-  const [years, setYears] = useState<YearData[]>([]);
+  const [users, setUsers] = useState<UserData[]>(() => loadUsers());
+  const [currentUser, setCurrentUser] = useState<UserData | null>(null);
+  const [showModal, setShowModal] = useState(false);
   const { exportToPNG } = useScrollExport();
-  
-  const handleSubmit = useCallback((year: number) => {
-    if (year === 1) {
-      // 彩蛋：生成模拟数据（使用1995作为示例起点）
-      setYears(generateDemoData(1995));
+
+  // 初始化：加载当前用户
+  useEffect(() => {
+    const currentUserId = loadCurrentUserId();
+    if (currentUserId) {
+      const user = users.find((u) => u.id === currentUserId);
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        // 如果有用户但找不到当前用户，显示输入框
+        setShowModal(true);
+      }
     } else {
-      // 正常生成（空白模板）
-      setYears(generateLifeData(year));
+      // 没有用户，显示输入框
+      setShowModal(true);
     }
+  }, []);
+
+  // 保存用户数据变更
+  useEffect(() => {
+    saveUsers(users);
+  }, [users]);
+
+  // 保存当前用户变更
+  useEffect(() => {
+    if (currentUser) {
+      saveCurrentUserId(currentUser.id);
+      // 同步更新 users 列表中的数据
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === currentUser.id ? { ...currentUser, updatedAt: Date.now() } : u
+        )
+      );
+    }
+  }, [currentUser?.years]);
+
+  const handleSubmit = useCallback(
+    (name: string, year: number) => {
+      if (year === 1) {
+        // 彩蛋：生成模拟数据（使用1995作为示例起点）
+        // 固定 id 和 name，检查是否已存在
+        const existingDemo = users.find((u) => u.id === 't001');
+        if (existingDemo) {
+          // 已存在，直接加载
+          setCurrentUser(existingDemo);
+          saveCurrentUserId(existingDemo.id);
+        } else {
+          // 不存在，创建并保存
+          const demoUser: UserData = {
+            id: 't001',
+            name: 't001',
+            birthYear: 1995,
+            years: generateDemoData(1995),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          setUsers((prev) => [...prev, demoUser]);
+          setCurrentUser(demoUser);
+          saveCurrentUserId(demoUser.id);
+        }
+      } else {
+        // 创建新用户
+        const newUser: UserData = {
+          id: generateId(),
+          name,
+          birthYear: year,
+          years: generateLifeData(year),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        setUsers((prev) => [...prev, newUser]);
+        setCurrentUser(newUser);
+        saveCurrentUserId(newUser.id);
+      }
+      setShowModal(false);
+    },
+    [users]
+  );
+
+  const handleSelectUser = useCallback((user: UserData) => {
+    setCurrentUser(user);
+    saveCurrentUserId(user.id);
     setShowModal(false);
   }, []);
-  
+
   const handleReset = useCallback(() => {
-    setYears([]);
+    setCurrentUser(null);
+    saveCurrentUserId(null);
     setShowModal(true);
   }, []);
-  
+
+  const handleSwitchUser = useCallback(() => {
+    setShowModal(true);
+  }, []);
+
   const handleExport = useCallback(async () => {
-    if (years.length === 0) return;
-    await exportToPNG(years);
-  }, [years, exportToPNG]);
-  
+    if (!currentUser || currentUser.years.length === 0) return;
+    await exportToPNG(currentUser.years);
+  }, [currentUser, exportToPNG]);
+
   // 更新某一年份的内容
   const handleUpdateYear = useCallback((year: number, text: string) => {
-    setYears(prev => prev.map(y => 
-      y.year === year ? { ...y, text } : y
-    ));
+    setCurrentUser((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        years: prev.years.map((y) => (y.year === year ? { ...y, text } : y)),
+        updatedAt: Date.now(),
+      };
+    });
   }, []);
-  
+
   // 欢迎界面
-  const WelcomeScreen = useMemo(() => (
-    <div className="min-h-screen flex flex-col items-center justify-center paper-texture">
-      <div className="text-center space-y-8 p-8">
-        {/* 印章 */}
-        <div className="flex justify-center">
-          <div className="seal text-lg">一生</div>
-        </div>
-        
-        {/* 标题 */}
-        <div className="space-y-4">
-          <h1 className="text-4xl md:text-5xl font-medium brush-text text-[var(--ink)]">
-            人生长卷
-          </h1>
-          <p className="text-lg text-[var(--light-ink)] tracking-widest">
-            绘制你的人生画卷
-          </p>
-        </div>
-        
-        {/* 开始按钮 */}
-        <button
-          onClick={() => setShowModal(true)}
-          className="group relative px-8 py-4 bg-[var(--ink)] text-[var(--paper)] rounded-full
+  const WelcomeScreen = useMemo(
+    () => (
+      <div className="min-h-screen flex flex-col items-center justify-center paper-texture">
+        <div className="text-center space-y-8 p-8">
+          {/* 印章 */}
+          <div className="flex justify-center">
+            <div className="seal text-lg">一生</div>
+          </div>
+
+          {/* 标题 */}
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-5xl font-medium brush-text text-[var(--ink)]">
+              人生长卷
+            </h1>
+            <p className="text-lg text-[var(--light-ink)] tracking-widest">绘制你的人生画卷</p>
+          </div>
+
+          {/* 开始按钮 */}
+          <button
+            onClick={() => setShowModal(true)}
+            className="group relative px-8 py-4 bg-[var(--ink)] text-[var(--paper)] rounded-full
                    hover:bg-[var(--light-ink)] transition-all shadow-lg hover:shadow-xl
                    hover:-translate-y-1 flex items-center gap-3 mx-auto"
-        >
-          <Sparkles size={18} className="group-hover:animate-pulse" />
-          <span className="tracking-wide">开始绘制</span>
-        </button>
-        
-        {/* 说明 */}
-        <p className="text-sm text-[var(--light-ink)] opacity-60 max-w-md mx-auto leading-relaxed">
-          输入你的出生年份，生成一幅属于你的"人生长卷"。
-          <br />
-          每一年都是一座独特的山峰，点击可编辑记录你的人生故事。
-        </p>
+          >
+            <Sparkles size={18} className="group-hover:animate-pulse" />
+            <span className="tracking-wide">开始绘制</span>
+          </button>
+
+          {/* 说明 */}
+          <p className="text-sm text-[var(--light-ink)] opacity-60 max-w-md mx-auto leading-relaxed">
+            输入你的姓名和出生年份，生成一幅属于你的"人生长卷"。
+            <br />
+            每一年都是一座独特的山峰，点击可编辑记录你的人生故事。
+          </p>
+        </div>
+
+        {/* 装饰元素 */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 text-[var(--light-ink)] opacity-40">
+          <div className="w-16 h-px bg-current" />
+          <span className="text-xs tracking-widest">卷</span>
+          <div className="w-16 h-px bg-current" />
+        </div>
       </div>
-      
-      {/* 装饰元素 */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 text-[var(--light-ink)] opacity-40">
-        <div className="w-16 h-px bg-current" />
-        <span className="text-xs tracking-widest">卷</span>
-        <div className="w-16 h-px bg-current" />
-      </div>
-    </div>
-  ), []);
-  
+    ),
+    []
+  );
+
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       {/* 输入模态框 */}
       <YearInputModal
         isOpen={showModal}
         onSubmit={handleSubmit}
-        onClose={years.length > 0 ? () => setShowModal(false) : undefined}
+        onSelectUser={handleSelectUser}
+        onClose={currentUser ? () => setShowModal(false) : undefined}
+        existingUsers={users}
       />
-      
+
       {/* 主内容 */}
-      {years.length === 0 ? (
+      {!currentUser ? (
         WelcomeScreen
       ) : (
         <ScrollViewer
-          years={years}
+          years={currentUser.years}
+          userName={currentUser.name}
           onReset={handleReset}
+          onSwitchUser={users.length > 0 ? handleSwitchUser : undefined}
           onExport={handleExport}
           onUpdateYear={handleUpdateYear}
         />
