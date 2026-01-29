@@ -4,48 +4,38 @@ import EditYearModal from './EditYearModal';
 import type { YearData } from '@/types';
 import { ChevronLeft, ChevronRight, Download, RotateCcw, Edit3, UserCircle } from 'lucide-react';
 
-// 画轴组件 - 固定在屏幕两侧
+// 画轴组件 - 固定在屏幕两侧（仿古卷轴风格）
 const ScrollRod: React.FC<{
   position: 'left' | 'right';
-  rotation: number;
-  thickness: number; // 卷入的"厚度"
-}> = ({ position, rotation, thickness }) => (
-  <div className={`scroll-rod-fixed scroll-rod-fixed-${position}`}>
-    {/* 卷入的纸张厚度效果 */}
+  thickness: number; // 卷入的"厚度" 0-40
+}> = ({ position, thickness }) => {
+  // 计算容器宽度：轴身20px + 纸卷厚度
+  const containerWidth = 20 + Math.max(0, thickness);
+
+  return (
     <div
-      className="scroll-rod-paper-roll"
-      style={{
-        width: `${Math.max(8, thickness)}px`,
-        backgroundPosition: `0 ${rotation}px`,
-      }}
-    />
-    {/* 画轴主体 */}
-    <div
-      className="scroll-rod-body-fixed"
-      style={{
-        backgroundPosition: `0 ${rotation}px`,
-      }}
-    />
-    {/* 顶部玉石装饰 */}
-    <div
-      className="scroll-rod-cap-fixed scroll-rod-cap-top-fixed"
-      style={{
-        transform: `translateX(-50%) rotate(${rotation * 2}deg)`,
-      }}
-    />
-    {/* 底部玉石装饰 */}
-    <div
-      className="scroll-rod-cap-fixed scroll-rod-cap-bottom-fixed"
-      style={{
-        transform: `translateX(-50%) rotate(${rotation * 2}deg)`,
-      }}
-    />
-    {/* 顶部金属环 */}
-    <div className="scroll-rod-ring-fixed scroll-rod-ring-top-fixed" />
-    {/* 底部金属环 */}
-    <div className="scroll-rod-ring-fixed scroll-rod-ring-bottom-fixed" />
-  </div>
-);
+      className={`scroll-rod-fixed scroll-rod-fixed-${position}`}
+      style={{ width: `${containerWidth}px` }}
+    >
+      {/* 卷入的纸卷 - 厚度随滚动变化 */}
+      {thickness > 2 && (
+        <div
+          className="scroll-rod-paper-roll"
+          style={{
+            width: `${thickness}px`,
+            opacity: Math.min(1, thickness / 8),
+          }}
+        />
+      )}
+      {/* 画轴主体 - 紫檀木 */}
+      <div className="scroll-rod-body-fixed" />
+      {/* 顶部轴头 */}
+      <div className="scroll-rod-cap-fixed scroll-rod-cap-top-fixed" />
+      {/* 底部轴头 */}
+      <div className="scroll-rod-cap-fixed scroll-rod-cap-bottom-fixed" />
+    </div>
+  );
+};
 
 interface ScrollViewerProps {
   years: YearData[];
@@ -64,14 +54,11 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
   // 编辑模态框状态
   const [editingYear, setEditingYear] = useState<YearData | null>(null);
 
-  // 画轴状态
-  const [leftRodRotation, setLeftRodRotation] = useState(0);
-  const [rightRodRotation, setRightRodRotation] = useState(0);
-  const [leftRodThickness, setLeftRodThickness] = useState(8);
-  const [rightRodThickness, setRightRodThickness] = useState(8);
+  // 画轴纸卷厚度状态
+  const [leftRodThickness, setLeftRodThickness] = useState(0);
+  const [rightRodThickness, setRightRodThickness] = useState(35);
 
-  // 滚动追踪
-  const lastScrollLeftRef = useRef(0);
+  // 动画帧引用
   const animationFrameRef = useRef<number | null>(null);
 
   // 拖拽状态
@@ -97,37 +84,27 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
     }
   }, [checkScroll, years]);
 
-  // 画轴动画 - 根据滚动位置计算卷入效果
+  // 画轴动画 - 根据滚动位置计算纸卷厚度（徐徐展开效果）
   useEffect(() => {
     const scrollEl = scrollRef.current;
     if (!scrollEl) return;
 
-    let accumulatedRotation = 0;
-
     const updateAnimation = () => {
       const { scrollLeft, scrollWidth, clientWidth } = scrollEl;
       const maxScroll = scrollWidth - clientWidth;
-      const scrollDelta = scrollLeft - lastScrollLeftRef.current;
-      lastScrollLeftRef.current = scrollLeft;
-
-      // 累积旋转（模拟画轴转动）
-      accumulatedRotation += scrollDelta * 0.3;
 
       // 计算滚动百分比
       const scrollPercent = maxScroll > 0 ? scrollLeft / maxScroll : 0;
 
-      // 保留最后5年可见（约 25% 的内容）
-      const minVisiblePercent = 0.15;
-      const maxVisiblePercent = 0.85;
+      // 最大纸卷厚度
+      const maxThickness = 35;
 
-      // 左侧画轴：滚动越多，卷入越多（厚度增加）
-      const leftThickness = 8 + Math.max(0, scrollPercent - minVisiblePercent) * 80;
+      // 左侧画轴：滚动越多，卷入越多（已看过的内容）
+      const leftThickness = scrollPercent * maxThickness;
 
-      // 右侧画轴：滚动越少，卷入越多
-      const rightThickness = 8 + Math.max(0, (1 - scrollPercent) - minVisiblePercent) * 80;
+      // 右侧画轴：滚动越少，卷入越多（未看的内容）
+      const rightThickness = (1 - scrollPercent) * maxThickness;
 
-      setLeftRodRotation(accumulatedRotation);
-      setRightRodRotation(-accumulatedRotation);
       setLeftRodThickness(leftThickness);
       setRightRodThickness(rightThickness);
 
@@ -308,20 +285,18 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
       {/* 固定的左侧画轴 */}
       <ScrollRod
         position="left"
-        rotation={leftRodRotation}
         thickness={leftRodThickness}
       />
 
       {/* 固定的右侧画轴 */}
       <ScrollRod
         position="right"
-        rotation={rightRodRotation}
         thickness={rightRodThickness}
       />
 
       {/* 顶部标题栏 */}
       <div className="absolute top-0 left-0 right-0 z-30 p-4 md:p-6 flex items-center justify-between pointer-events-none bg-gradient-to-b from-[var(--paper)] to-transparent">
-        <div className="flex items-center gap-3 md:gap-4 pointer-events-auto ml-12 md:ml-16">
+        <div className="flex items-center gap-3 md:gap-4 pointer-events-auto ml-16 md:ml-20">
           <div className="seal text-[10px] md:text-xs scale-75 md:scale-100 origin-left">长卷</div>
           <div>
             <h1 className="text-lg md:text-xl font-medium brush-text text-[var(--ink)]">
@@ -333,7 +308,7 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-3 pointer-events-auto mr-12 md:mr-16">
+        <div className="flex items-center gap-2 md:gap-3 pointer-events-auto mr-16 md:mr-20">
           {onSwitchUser && (
             <button
               onClick={onSwitchUser}
@@ -369,7 +344,7 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
       {/* 滚动控制按钮 */}
       <button
         onClick={() => scroll('left')}
-        className={`hidden md:flex absolute left-16 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full
+        className={`hidden md:flex absolute left-[60px] top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full
                    bg-[var(--paper)] border border-[var(--light-ink)] shadow-lg
                    items-center justify-center transition-all pointer-events-auto
                    ${canScrollLeft ? 'opacity-100 hover:bg-[var(--secondary)]' : 'opacity-0 pointer-events-none'}`}
@@ -379,7 +354,7 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
 
       <button
         onClick={() => scroll('right')}
-        className={`hidden md:flex absolute right-16 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full
+        className={`hidden md:flex absolute right-[60px] top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full
                    bg-[var(--paper)] border border-[var(--light-ink)] shadow-lg
                    items-center justify-center transition-all pointer-events-auto
                    ${canScrollRight ? 'opacity-100 hover:bg-[var(--secondary)]' : 'opacity-0 pointer-events-none'}`}
@@ -394,14 +369,14 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
         style={{
           cursor: 'grab',
           WebkitOverflowScrolling: 'touch',
-          marginLeft: '48px',
-          marginRight: '48px',
+          marginLeft: '56px',
+          marginRight: '56px',
         }}
       >
         <div className="painting-paper flex h-[420px] md:h-[520px] flex-shrink-0">
           {/* 卷首装饰 */}
           <div className="scroll-header h-full">
-            <div className="vertical-text text-[var(--accent-gold)] text-xs md:text-sm tracking-[0.3em] opacity-80">
+            <div className="vertical-text text-[var(--light-ink)] text-xs md:text-sm tracking-[0.3em] opacity-60">
               春秋数载
             </div>
           </div>
@@ -461,7 +436,7 @@ const ScrollViewer: React.FC<ScrollViewerProps> = ({ years, userName, onReset, o
 
           {/* 卷尾装饰 */}
           <div className="scroll-footer h-full">
-            <div className="vertical-text text-[var(--accent-gold)] text-xs md:text-sm tracking-[0.3em] opacity-80">
+            <div className="vertical-text text-[var(--light-ink)] text-xs md:text-sm tracking-[0.3em] opacity-60">
               卷终
             </div>
           </div>

@@ -198,18 +198,18 @@
     transform: rotate(-3deg);
   }
 
-  /* ========== 固定画轴效果 ========== */
+  /* ========== 固定画轴效果 - 仿古卷轴 ========== */
   .scroll-rod-fixed {
     position: fixed;
     top: 50%;
     transform: translateY(-50%);
-    width: 48px;
     height: 70vh;
-    max-height: 540px;
+    max-height: 560px;
     z-index: 25;
     display: flex;
     flex-direction: column;
     align-items: center;
+    pointer-events: none;
   }
 
   .scroll-rod-fixed-left {
@@ -220,150 +220,129 @@
     right: 0;
   }
 
-  /* 卷入的纸张厚度效果 */
+  /* 卷入的纸卷效果 - 多层纸张叠加 */
   .scroll-rod-paper-roll {
     position: absolute;
-    top: 36px;
-    bottom: 36px;
-    background:
-      repeating-linear-gradient(
-        0deg,
-        #f7f5f0 0px,
-        #e8e4db 1px,
-        #f0ede6 2px
-      );
-    border-radius: 4px;
-    box-shadow:
-      inset 2px 0 4px rgba(0,0,0,0.1),
-      inset -2px 0 4px rgba(0,0,0,0.1);
-    transition: width 0.15s ease-out;
+    top: 20px;
+    bottom: 20px;
+    transition: width 0.2s ease-out, opacity 0.2s ease-out;
+    z-index: 1;
   }
 
   .scroll-rod-fixed-left .scroll-rod-paper-roll {
-    right: 22px;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
+    right: 12px;
+    background:
+      /* 多层纸张效果 */
+      repeating-linear-gradient(
+        90deg,
+        rgba(240,237,230,0.9) 0px,
+        rgba(232,228,219,0.8) 2px,
+        rgba(247,245,240,0.9) 4px,
+        rgba(240,237,230,0.85) 6px
+      ),
+      /* 底色渐变 - 模拟圆柱阴影 */
+      linear-gradient(90deg,
+        rgba(247,245,240,0.3) 0%,
+        rgba(240,237,230,0.95) 40%,
+        rgba(220,216,205,1) 80%,
+        rgba(180,175,165,1) 100%
+      );
+    border-radius: 2px 8px 8px 2px;
+    box-shadow:
+      inset -4px 0 8px rgba(0,0,0,0.15),
+      -2px 0 4px rgba(0,0,0,0.1);
   }
 
   .scroll-rod-fixed-right .scroll-rod-paper-roll {
-    left: 22px;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
+    left: 12px;
+    background:
+      /* 多层纸张效果 */
+      repeating-linear-gradient(
+        -90deg,
+        rgba(240,237,230,0.9) 0px,
+        rgba(232,228,219,0.8) 2px,
+        rgba(247,245,240,0.9) 4px,
+        rgba(240,237,230,0.85) 6px
+      ),
+      /* 底色渐变 - 模拟圆柱阴影 */
+      linear-gradient(-90deg,
+        rgba(247,245,240,0.3) 0%,
+        rgba(240,237,230,0.95) 40%,
+        rgba(220,216,205,1) 80%,
+        rgba(180,175,165,1) 100%
+      );
+    border-radius: 8px 2px 2px 8px;
+    box-shadow:
+      inset 4px 0 8px rgba(0,0,0,0.15),
+      2px 0 4px rgba(0,0,0,0.1);
   }
 
-  /* 画轴主体 - 固定版 */
+  /* 画轴主体 - 紫檀木圆柱 */
   .scroll-rod-body-fixed {
     position: absolute;
-    top: 24px;
-    bottom: 24px;
-    width: 22px;
+    top: 12px;
+    bottom: 12px;
+    width: 16px;
     background:
-      repeating-linear-gradient(
-        180deg,
-        #8b6914 0px,
-        #d4a84b 3px,
-        #f5d78e 6px,
-        #d4a84b 9px,
-        #a67c00 12px,
-        #8b6914 15px
-      ),
       linear-gradient(90deg,
-        #6b5210 0%,
-        #8b6914 10%,
-        #d4a84b 25%,
-        #f5d78e 40%,
-        #d4a84b 60%,
-        #a67c00 75%,
-        #8b6914 90%,
-        #6b5210 100%
+        #1a0e08 0%,
+        #3d221a 18%,
+        #6b4030 38%,
+        #7a4a38 50%,
+        #6b4030 62%,
+        #3d221a 82%,
+        #1a0e08 100%
       );
-    background-blend-mode: overlay;
-    border-radius: 11px;
+    border-radius: 8px;
     box-shadow:
-      3px 0 8px rgba(0,0,0,0.4),
-      -2px 0 4px rgba(0,0,0,0.2),
-      inset 2px 0 4px rgba(255,255,255,0.3),
-      inset -2px 0 4px rgba(0,0,0,0.2);
-    z-index: 2;
+      3px 0 8px rgba(0,0,0,0.5),
+      -2px 0 6px rgba(0,0,0,0.3),
+      inset 1px 0 2px rgba(255,255,255,0.1);
+    z-index: 3;
   }
 
   .scroll-rod-fixed-left .scroll-rod-body-fixed {
-    right: 8px;
+    right: 2px;
   }
 
   .scroll-rod-fixed-right .scroll-rod-body-fixed {
-    left: 8px;
+    left: 2px;
   }
 
-  /* 玉石顶饰 - 固定版 */
+  /* 轴头 - 紫檀木圆头 */
   .scroll-rod-cap-fixed {
     position: absolute;
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 16px;
     border-radius: 50%;
-    background: radial-gradient(ellipse at 30% 30%,
-      #e8f5e9 0%,
-      #a5d6a7 30%,
-      #66bb6a 60%,
-      #388e3c 100%
-    );
+    background:
+      radial-gradient(ellipse at 40% 40%,
+        #7a4a38 0%,
+        #5a3428 35%,
+        #3d221a 65%,
+        #1a0e08 100%
+      );
     box-shadow:
-      0 4px 12px rgba(0,0,0,0.5),
-      inset 0 3px 6px rgba(255,255,255,0.5),
-      inset 0 -3px 6px rgba(0,0,0,0.3);
-    border: 3px solid #2e7d32;
-    z-index: 3;
-    transition: transform 0.1s ease-out;
-  }
-
-  .scroll-rod-fixed-left .scroll-rod-cap-fixed {
-    right: 3px;
-  }
-
-  .scroll-rod-fixed-right .scroll-rod-cap-fixed {
-    left: 3px;
-  }
-
-  .scroll-rod-cap-top-fixed {
-    top: 0;
-  }
-
-  .scroll-rod-cap-bottom-fixed {
-    bottom: 0;
-  }
-
-  /* 金属环 - 固定版 */
-  .scroll-rod-ring-fixed {
-    position: absolute;
-    width: 28px;
-    height: 10px;
-    background: linear-gradient(180deg,
-      #ffd700 0%,
-      #ffecb3 30%,
-      #ffd700 50%,
-      #b8860b 100%
-    );
-    border-radius: 3px;
-    box-shadow:
-      0 2px 4px rgba(0,0,0,0.4),
-      inset 0 1px 2px rgba(255,255,255,0.5);
+      0 2px 6px rgba(0,0,0,0.5),
+      inset 0 1px 2px rgba(255,255,255,0.1),
+      inset 0 -1px 2px rgba(0,0,0,0.3);
     z-index: 4;
   }
 
-  .scroll-rod-fixed-left .scroll-rod-ring-fixed {
-    right: 5px;
+  .scroll-rod-fixed-left .scroll-rod-cap-fixed {
+    right: -2px;
   }
 
-  .scroll-rod-fixed-right .scroll-rod-ring-fixed {
-    left: 5px;
+  .scroll-rod-fixed-right .scroll-rod-cap-fixed {
+    left: -2px;
   }
 
-  .scroll-rod-ring-top-fixed {
-    top: 32px;
+  .scroll-rod-cap-top-fixed {
+    top: 2px;
   }
 
-  .scroll-rod-ring-bottom-fixed {
-    bottom: 32px;
+  .scroll-rod-cap-bottom-fixed {
+    bottom: 2px;
   }
 
   /* 画卷内容滚动区域 */
@@ -388,8 +367,8 @@
   /* 画卷纸张 */
   .painting-paper {
     background: var(--paper);
-    border-top: 3px solid #8b6914;
-    border-bottom: 3px solid #8b6914;
+    border-top: 3px solid rgba(90, 77, 61, 0.3);
+    border-bottom: 3px solid rgba(90, 77, 61, 0.3);
     box-shadow:
       0 4px 20px var(--shadow),
       0 8px 40px rgba(44, 36, 27, 0.1);
@@ -414,21 +393,21 @@
   .painting-content::before {
     left: 0;
     background: linear-gradient(90deg,
-      rgba(139,105,20,0.12) 0%,
-      rgba(139,105,20,0.05) 30%,
+      rgba(90,77,61,0.12) 0%,
+      rgba(90,77,61,0.05) 30%,
       transparent 100%
     );
-    border-left: 1px solid rgba(139,105,20,0.15);
+    border-left: 1px solid rgba(90,77,61,0.15);
   }
 
   .painting-content::after {
     right: 0;
     background: linear-gradient(-90deg,
-      rgba(139,105,20,0.12) 0%,
-      rgba(139,105,20,0.05) 30%,
+      rgba(90,77,61,0.12) 0%,
+      rgba(90,77,61,0.05) 30%,
       transparent 100%
     );
-    border-right: 1px solid rgba(139,105,20,0.15);
+    border-right: 1px solid rgba(90,77,61,0.15);
   }
 
   /* 卷首装饰文字区域 */
@@ -440,10 +419,10 @@
     padding: 0 16px;
     min-width: 60px;
     background: linear-gradient(90deg,
-      rgba(139,105,20,0.1) 0%,
+      rgba(90,77,61,0.1) 0%,
       transparent 100%
     );
-    border-right: 1px solid rgba(139,105,20,0.2);
+    border-right: 1px solid rgba(90,77,61,0.2);
   }
 
   /* 卷尾装饰文字区域 */
@@ -455,10 +434,10 @@
     padding: 0 16px;
     min-width: 60px;
     background: linear-gradient(-90deg,
-      rgba(139,105,20,0.1) 0%,
+      rgba(90,77,61,0.1) 0%,
       transparent 100%
     );
-    border-left: 1px solid rgba(139,105,20,0.2);
+    border-left: 1px solid rgba(90,77,61,0.2);
   }
 }
 
